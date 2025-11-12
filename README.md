@@ -13,7 +13,9 @@ You will find the individual Overclock Boot Images i made here, as well as the f
 These overclocks are ONLY for the following devices:
 
 Retroid Pocket 5 
+
 Retroid Pocket Mini v2 
+
 Retroid Pocket Flip 2 Snapdragon Variant
 
 ---------------
