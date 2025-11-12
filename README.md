@@ -19,9 +19,11 @@ Retroid Pocket Flip 2 Snapdragon Variant
 ---------------
 
 Video guide how to Overclock your decice (all 3 listed above)
+
 https://youtu.be/tCKh-aK4APc?si=AjRQK1uAQA7iQq4p
 
 Video guide how to revert back to stock/unoverclocked
+
 https://youtu.be/jdpSaSUqQEU?si=utfubEEkLbJXC62E
 
 ---------------
