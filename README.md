@@ -12,19 +12,19 @@ You will find the individual Overclock Boot Images i made here, as well as the f
 
 These overclocks are ONLY for the following devices:
 
-Retroid Pocket 5 
+-Retroid Pocket 5 
 
-Retroid Pocket Mini v2 
+-Retroid Pocket Mini v2 
 
-Retroid Pocket Flip 2 Snapdragon Variant
+-Retroid Pocket Flip 2 Snapdragon Variant
 
 ---------------
 
-Video guide how to Overclock your decice (all 3 listed above)
+Video guide how to Overclock your decice (all 3 listed above).
 
 https://youtu.be/tCKh-aK4APc?si=AjRQK1uAQA7iQq4p
 
-Video guide how to revert back to stock/unoverclocked
+Video guide how to revert back to stock/unoverclocked.
 
 https://youtu.be/jdpSaSUqQEU?si=utfubEEkLbJXC62E
 
@@ -35,19 +35,19 @@ ROOT INSTRUCTIONS:
 METHOD ONE:
 (my personal recommendation)
 
-Original credit and instructions below are copies from original reddit post and online found here online (they work for both the pocket 5 and flip 2)
+Original credit and instructions below are copies from original reddit post and online found here online (they work for both the pocket 5 and flip 2).
 
 https://www.reddit.com/r/retroid/s/2l2NHAxi0g
 
 METHOD TWO:
 
-You can alternatively use O2P Tweaks to use its one click root method found and created here
+You can alternatively use O2P Tweaks to use its "one click root" method found and created linked below.
 
 https://github.com/FeralAI/o2ptweaks.app
 
 ---------------
 
-Credit to original user for creating the firet overclock used in all my guides that I remade and kept alive for future firmware releases on all 3 devices here
+Credit to original user for creating the first overclock used in all my guides that I remade and kept alive for future firmware releases on all 3 devices, linked below.
 
 https://www.reddit.com/r/retroid/s/MI2yutfCth
 
