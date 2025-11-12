@@ -29,3 +29,27 @@ Video guide how to revert back to stock/unoverclocked
 https://youtu.be/jdpSaSUqQEU?si=utfubEEkLbJXC62E
 
 ---------------
+
+ROOT INSTRUCTIONS:
+
+METHOD ONE:
+(my personal recommendation)
+
+Original credit and instructions below are copies from original reddit post and online found here online (they work for both the pocket 5 and flip 2)
+
+https://www.reddit.com/r/retroid/s/2l2NHAxi0g
+
+METHOD TWO:
+
+You can alternatively use O2P Tweaks to use its one click root method found and created here
+
+https://github.com/FeralAI/o2ptweaks.app
+
+---------------
+
+Credit to original user for creating the firet overclock used in all my guides that I remade and kept alive for future firmware releases on all 3 devices here
+
+https://www.reddit.com/r/retroid/s/MI2yutfCth
+
+---------------
+
