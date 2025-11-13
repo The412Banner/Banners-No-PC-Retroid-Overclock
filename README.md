@@ -4,6 +4,8 @@ This is a Repo for my Retroid Overclock Files and Guides as well as all the orig
 
 ALL STEPS ARE YOUR OWN CHOICE, I AM NOT RESPONSIBLE FOR YOU BRICKING/COOKING YOUR DEVICE AND THIS WILL ALL VOID YOUR WARRANTY!  RETROID DOES NOT ENCOURAGE/SUPPORT ROOT OR OVERCLOCKING ANY OF THEIR DEVICES!
 
+*THIS METHOD DOES NOT WIPE/FORMST YOUR DEVICE!*
+
 ---------------
 
 You will find the individual Overclock Boot Images i made here, as well as the full packa i released with all files included to perform ROOT and Overclock on your device.
@@ -50,6 +52,8 @@ https://github.com/FeralAI/o2ptweaks.app
 Credit to original user for creating the first overclock used in all my guides that I remade and kept alive for future firmware releases on all 3 devices, linked below.
 
 https://www.reddit.com/r/retroid/s/MI2yutfCth
+
+Above link will also give you statistics and breakdowns on the performance increases as well as mire in-depth information from using it.
 
 ---------------
 
