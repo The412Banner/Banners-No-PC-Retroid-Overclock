@@ -8,7 +8,7 @@ ALL STEPS ARE YOUR OWN CHOICE, I AM NOT RESPONSIBLE FOR YOU BRICKING/COOKING YOU
 
 ---------------
 
-You will find the individual Overclock Boot Images i made here, as well as the full packa i released with all files included to perform ROOT and Overclock on your device.
+You will find the individual Overclock Boot Images i made here, as well as the full packs i released with all files included to perform ROOT and Overclock on your device.
 
 ---------------
 
@@ -26,7 +26,7 @@ Video guide how to Overclock your decice (all 3 listed above).
 
 https://youtu.be/tCKh-aK4APc?si=AjRQK1uAQA7iQq4p
 
-Video guide how to revert back to stock/unoverclocked.
+Video guide how to revert back to stock/unoverclocked/unrooted.
 
 https://youtu.be/jdpSaSUqQEU?si=utfubEEkLbJXC62E
 
@@ -57,4 +57,4 @@ Above link will also give you statistics and breakdowns on the performance incre
 
 ---------------
 
-** SOME OF THE INCOUDED INSTRUCTIONS INSIDE THE PACKS PROVIDED HAVE TYPOS FROM COOY AND PASTE METHODS I USED TO MAKE ON NEW FIRMWARE RELEASES!  SOME LINKS MAY STILL WORK INSDE THEM BUT I SUGGEST USING FILES ONLY FROM HERE!  IF THEY WORK, GREAT, ITS YOUR CHOICE AS THEY WERE LEGIT RELEASES BY ME!**
+** SOME OF THE INCLUDED INSTRUCTIONS INSIDE THE PACKS PROVIDED HAVE TYPOS FROM COPY AND PASTE METHODS I USED TO MAKE ON NEW FIRMWARE RELEASES!  SOME LINKS MAY STILL WORK INSDE THEM BUT I SUGGEST USING FILES ONLY FROM HERE!  IF THEY WORK, GREAT, ITS YOUR CHOICE AS THEY WERE LEGIT RELEASES BY ME!**
