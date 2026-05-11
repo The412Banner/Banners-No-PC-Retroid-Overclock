@@ -1,4 +1,6 @@
 # Banners-No-PC-Retroid-Overclock
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/n8S4G2WZQ4)
+
 
 This is a Repo for my Retroid Overclock Files and Guides as well as all the original boot backup images i acquired in the off chance you lost yours.  MAKE SURE TO USE THE CORRECT FIRMWARE VERSION FOR YOUR DEVICE!
 
@@ -65,3 +67,8 @@ Above link will also give you statistics and breakdowns on the performance incre
 
 ---
 <sub>☕ [Support on Ko-fi](https://ko-fi.com/the412banner)</sub>
+
+
+## Community
+
+Join our Discord: https://discord.gg/n8S4G2WZQ4
