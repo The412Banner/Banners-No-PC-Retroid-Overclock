@@ -5,6 +5,11 @@ name: Retroid Easy Root (app + script pack)
 
 on:
   workflow_dispatch:
+  # Only until the workflow is on main: GitHub cannot dispatch a workflow that exists only on a branch.
+  # Remove this push trigger before merging.
+  push:
+    branches: [ feat/easy-root ]
+    paths: [ 'easy-root/**', '.github/workflows/easy-root.yml' ]
 
 permissions:
   contents: read
