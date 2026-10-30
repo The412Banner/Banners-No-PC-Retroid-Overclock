@@ -1,0 +1,55 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.the412banner.retroideasyroot'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.the412banner.retroideasyroot'
+        minSdk 30
+        targetSdk 35
+        // keep versionName == EASYROOT_VERSION in ../../scripts/tools/lib.sh (CI checks it)
+        versionCode 1
+        versionName '0.1.0'
+    }
+
+    // The release key comes from the EASYROOT_KEYSTORE_* secrets in CI; without them (forks) the debug key is used.
+    signingConfigs {
+        release {
+            def ks = System.getenv('EASYROOT_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storeType 'pkcs12'
+                storePassword System.getenv('EASYROOT_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('EASYROOT_KEY_ALIAS')
+                keyPassword System.getenv('EASYROOT_KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig System.getenv('EASYROOT_KEYSTORE') ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    // The scripts ship inside the app from the same folder the script pack is made from.
+    sourceSets {
+        main {
+            assets.srcDirs = ['../../scripts']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}

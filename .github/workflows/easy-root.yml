@@ -1,0 +1,91 @@
+name: Retroid Easy Root (app + script pack)
+
+# Manual build. Checks the scripts, builds the signed app (scripts inside as assets) and a zip with the
+# Download/RetroidRoot folder for people who only want the scripts. Output = one artifact, no release.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: easy-root-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Check the scripts
+        working-directory: easy-root/scripts
+        run: |
+          for f in *.sh tools/*.sh; do sh -n "$f" && echo "syntax ok: $f"; done
+          # Retroid's runner cuts every line at 255 chars and runs each line alone
+          awk 'length > 254 { print FILENAME ": line " FNR " is " length " chars"; bad = 1 } END { exit bad }' ROOT.sh UNDO.sh CHECK.sh
+          lib_ver=$(sed -n 's/^EASYROOT_VERSION=//p' tools/lib.sh)
+          app_ver=$(sed -n "s/^ *versionName '\(.*\)'/\1/p" ../android/app/build.gradle)
+          echo "scripts $lib_ver, app $app_ver"
+          [ -n "$lib_ver" ] && [ "$lib_ver" = "$app_ver" ]
+          lib_sha=$(sed -n 's/^MAGISK_KNOWN="\([0-9a-f]*\)=.*/\1/p' tools/lib.sh)
+          grep -q "MAGISK_SHA256 = \"$lib_sha\"" ../android/app/src/main/java/com/the412banner/retroideasyroot/MainActivity.java
+          echo "Magisk sha256 matches: $lib_sha"
+          echo "EASYROOT_VERSION=$lib_ver" >> "$GITHUB_ENV"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.EASYROOT_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/easyroot.p12"
+            echo "EASYROOT_KEYSTORE=$RUNNER_TEMP/easyroot.p12" >> "$GITHUB_ENV"
+            echo "signing with the release key"
+          else
+            echo "::warning::no EASYROOT_KEYSTORE_B64 secret: the APK is signed with the debug key"
+          fi
+
+      - name: Build the app
+        env:
+          EASYROOT_KEYSTORE_PASSWORD: ${{ secrets.EASYROOT_KEYSTORE_PASSWORD }}
+          EASYROOT_KEY_ALIAS: ${{ secrets.EASYROOT_KEY_ALIAS }}
+        run: gradle -p easy-root/android --no-daemon assembleRelease
+
+      - name: Package APK + script pack
+        run: |
+          sha8=$(git rev-parse --short=8 HEAD)
+          mkdir -p out pack/RetroidRoot
+          cp easy-root/android/app/build/outputs/apk/release/app-release.apk "out/RetroidEasyRoot-$EASYROOT_VERSION-$sha8.apk"
+          cp -r easy-root/scripts/. pack/RetroidRoot/
+          (cd pack && zip -r -X "../out/RetroidEasyRoot-scripts-$EASYROOT_VERSION-$sha8.zip" RetroidRoot)
+          bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$bt/apksigner" verify --print-certs "out/RetroidEasyRoot-$EASYROOT_VERSION-$sha8.apk" | tee out/apk-certificate.txt
+          unzip -l "out/RetroidEasyRoot-$EASYROOT_VERSION-$sha8.apk" | grep -E 'assets/' 
+          (cd out && sha256sum *.apk *.zip > SHA256SUMS && cat SHA256SUMS)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: retroid-easy-root
+          path: out/*
+          if-no-files-found: error
