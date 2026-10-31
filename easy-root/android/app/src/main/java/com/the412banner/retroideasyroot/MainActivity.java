@@ -9,6 +9,7 @@ import android.content.pm.PackageInstaller;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,12 +39,17 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * One screen that walks through rooting with the Easy Root scripts. The app itself never has root:
@@ -61,6 +67,8 @@ public class MainActivity extends Activity {
     static final String MAGISK_PKG = "com.topjohnwu.magisk";
     static final String[] TOOL_FILES = {"ROOT.sh", "UNDO.sh", "CHECK.sh",
             "tools/lib.sh", "tools/root.sh", "tools/undo.sh", "tools/check.sh"};
+    // media-scanned after copying so the Run script as Root picker lists them; tools/ is not scanned on purpose
+    static final String[] LAUNCHERS = {"ROOT.sh", "UNDO.sh", "CHECK.sh"};
     static final String REPO = "https://github.com/The412Banner/Banners-No-PC-Retroid-Overclock";
 
     static final int GREEN = 0xFF2E7D32, RED = 0xFFC62828, AMBER = 0xFFEF6C00, GREY = 0xFF808080;
@@ -80,7 +88,7 @@ public class MainActivity extends Activity {
     String apkKey;
     Boolean apkOk;
     boolean downloading, copying;
-    String downloadText, downloadError, copyError, installError;
+    String downloadText, downloadError, copyError, scanError, installError;
 
     final Runnable ticker = new Runnable() {
         @Override
@@ -287,7 +295,7 @@ public class MainActivity extends Activity {
             else if (missing == TOOL_FILES.length) tools.set(AMBER, "Not copied yet");
             else tools.set(AMBER, (missing + old) + " file(s) missing or out of date. Copy again.");
         }
-        tools.info(copyError == null ? null : "Copy failed: " + copyError);
+        tools.info(copyError != null ? "Copy failed: " + copyError : scanError);
         copyBtn.setEnabled(go && !copying);
 
         // 4. root, 5. check, undo: results the scripts wrote
@@ -461,9 +469,10 @@ public class MainActivity extends Activity {
         if (copying) return;
         copying = true;
         copyError = null;
+        scanError = null;
         refresh();
         bg.execute(() -> {
-            String err = null;
+            String err = null, scan = null;
             try {
                 for (String n : TOOL_FILES) {
                     File f = new File(toolDir, n);
@@ -473,16 +482,40 @@ public class MainActivity extends Activity {
                         os.write(assets.get(n));
                     }
                 }
+                scan = scanLaunchers();
             } catch (IOException e) {
                 err = e.getMessage();
             }
-            String fe = err;
+            String fe = err, fs = scan;
             main.post(() -> {
                 copying = false;
                 copyError = fe;
+                scanError = fs;
                 refresh();
             });
         });
+    }
+
+    // Files written through /sdcard can stay "pending" in Android's media index, and other apps' file
+    // pickers (Run script as Root too) do not list pending files. A scan clears it. Runs on the bg thread.
+    String scanLaunchers() {
+        String[] paths = new String[LAUNCHERS.length];
+        for (int i = 0; i < paths.length; i++) paths[i] = new File(toolDir, LAUNCHERS[i]).getPath();
+        CountDownLatch done = new CountDownLatch(paths.length);
+        List<String> failed = Collections.synchronizedList(new ArrayList<>());
+        MediaScannerConnection.scanFile(this, paths, null, (path, uri) -> {
+            if (uri == null) failed.add(new File(path).getName());
+            done.countDown();
+        });
+        try {
+            if (!done.await(30, TimeUnit.SECONDS)) return "Files copied, but Android's media scan did not finish. "
+                    + "If Run script as Root does not list them, restart the device.";
+        } catch (InterruptedException e) {
+            return "Files copied, but the media scan was interrupted.";
+        }
+        if (failed.isEmpty()) return null;
+        return "Files copied, but Android did not index " + String.join(", ", failed)
+                + ". Run script as Root may not list it. Restarting the device usually fixes this.";
     }
 
     void openRetroidSettings() {
