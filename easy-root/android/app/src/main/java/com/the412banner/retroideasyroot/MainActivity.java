@@ -65,10 +65,10 @@ public class MainActivity extends Activity {
     // must match MAGISK_KNOWN in scripts/tools/lib.sh (CI checks it)
     static final String MAGISK_SHA256 = "89cefac0a318afa39fb3880c45c87b036c05bc1ebf02a7a715b7f8d7c26ac6e7";
     static final String MAGISK_PKG = "com.topjohnwu.magisk";
-    static final String[] TOOL_FILES = {"ROOT.sh", "UNDO.sh", "CHECK.sh",
-            "tools/lib.sh", "tools/root.sh", "tools/undo.sh", "tools/check.sh"};
+    static final String[] TOOL_FILES = {"BACKUP.sh", "ROOT.sh", "UNDO.sh", "CHECK.sh",
+            "tools/lib.sh", "tools/backup.sh", "tools/root.sh", "tools/undo.sh", "tools/check.sh"};
     // media-scanned after copying so the Run script as Root picker lists them; tools/ is not scanned on purpose
-    static final String[] LAUNCHERS = {"ROOT.sh", "UNDO.sh", "CHECK.sh"};
+    static final String[] LAUNCHERS = {"BACKUP.sh", "ROOT.sh", "UNDO.sh", "CHECK.sh"};
     static final String REPO = "https://github.com/The412Banner/Banners-No-PC-Retroid-Overclock";
 
     static final int GREEN = 0xFF2E7D32, RED = 0xFFC62828, AMBER = 0xFFEF6C00, GREY = 0xFF808080;
@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
     boolean supported;
 
     LinearLayout list;
-    Step access, magisk, tools, root, check, app, undo;
+    Step access, magisk, tools, backup, root, check, app, undo;
     Button allowBtn, downloadBtn, copyBtn, installBtn;
     Button[] settingsBtns, logBtns;
 
@@ -190,22 +190,30 @@ public class MainActivity extends Activity {
         downloadBtn = magisk.button("Download", v -> downloadMagisk());
 
         tools = new Step("3. Put the tool files in Download",
-                "Copies ROOT.sh, UNDO.sh, CHECK.sh and the tools folder to Download/RetroidRoot.");
+                "Copies BACKUP.sh, ROOT.sh, UNDO.sh, CHECK.sh and the tools folder to Download/RetroidRoot.");
         copyBtn = tools.button("Copy files", v -> copyTools());
 
-        root = new Step("4. Root",
-                "Tap Open Retroid Settings, go to Handheld Settings > Advanced > Run script as Root, and pick "
-                        + "Download > RetroidRoot > ROOT.sh. The first run takes about a minute because it makes "
-                        + "a backup. Then come back here for the result.");
+        backup = new Step("4. Back up",
+                "Saves your stock boot partitions (both slots) to Download/RetroidRoot/boot-backup and checks "
+                        + "every copy. It only reads, it writes no partition. Tap Open Retroid Settings, go to "
+                        + "Handheld Settings > Advanced > Run script as Root, and pick Download > RetroidRoot > "
+                        + "BACKUP.sh. It takes about a minute. Then copy the boot-backup folder off the device "
+                        + "(PC or cloud): it is how you go back to stock.");
+        Button s0 = backup.button("Open Retroid Settings", v -> openRetroidSettings());
+        Button l0 = backup.button("Show log", v -> showLog("backup-result.txt"));
+
+        root = new Step("5. Root",
+                "Run ROOT.sh the same way (Run script as Root > RetroidRoot > ROOT.sh). If there is no backup "
+                        + "yet, it makes one first. Then come back here for the result.");
         Button s1 = root.button("Open Retroid Settings", v -> openRetroidSettings());
         Button l1 = root.button("Show log", v -> showLog("root-result.txt"));
 
-        check = new Step("5. Restart, then check",
+        check = new Step("6. Restart, then check",
                 "Restart the device. Then run CHECK.sh the same way (Run script as Root > RetroidRoot > CHECK.sh).");
         Button s2 = check.button("Open Retroid Settings", v -> openRetroidSettings());
         Button l2 = check.button("Show log", v -> showLog("check-result.txt"));
 
-        app = new Step("6. Magisk app",
+        app = new Step("7. Magisk app",
                 "Manages root. ROOT.sh installs it for you; if that did not work, install it here. "
                         + "On its first start Magisk may ask for one more restart.");
         installBtn = app.button("Install Magisk app", v -> installMagisk());
@@ -218,8 +226,8 @@ public class MainActivity extends Activity {
                         + "Run UNDO.sh with Run script as Root, then restart.");
         Button s3 = undo.button("Open Retroid Settings", v -> openRetroidSettings());
         Button l3 = undo.button("Show log", v -> showLog("undo-result.txt"));
-        settingsBtns = new Button[]{s1, s2, s3};
-        logBtns = new Button[]{l1, l2, l3};
+        settingsBtns = new Button[]{s0, s1, s2, s3};
+        logBtns = new Button[]{l0, l1, l2, l3};
 
         TextView credits = label("Magisk is made by topjohnwu (GPLv3). This app downloads it from the official "
                 + "release and does not include it.\nRetroid Easy Root by The412Banner: " + REPO, 12, false);
@@ -298,7 +306,8 @@ public class MainActivity extends Activity {
         tools.info(copyError != null ? "Copy failed: " + copyError : scanError);
         copyBtn.setEnabled(go && !copying);
 
-        // 4. root, 5. check, undo: results the scripts wrote
+        // 4. backup, 5. root, 6. check, undo: results the scripts wrote
+        showResult(backup, "backup", files);
         showResult(root, "root", files);
         showResult(undo, "undo", files);
         showCheck(files);
@@ -336,7 +345,7 @@ public class MainActivity extends Activity {
                 break;
             case "ALREADY":
                 color = GREEN;
-                head = "✓ Nothing to do";
+                head = "backup".equals(step) ? "✓ Backup is there and checks out" : "✓ Nothing to do";
                 break;
             case "DRYRUN":
                 color = GREEN;
