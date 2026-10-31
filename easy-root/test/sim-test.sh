@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# sim-test.sh - runs root.sh / undo.sh / check.sh in test mode (EASYROOT_TEST=1) against fake partitions.
+# sim-test.sh - runs backup.sh / root.sh / undo.sh / check.sh in test mode (EASYROOT_TEST=1) against fake partitions.
 # No root needed, nothing on the device is touched. Run it with Android's shell (the scripts target mksh/toybox):
 #   /system/bin/sh sim-test.sh <stock init_boot.img> <official Magisk APK> <empty scratch dir>
 # The fake init_boot partitions are copies of the real stock image, so Magisk's patcher runs for real.
@@ -128,6 +128,52 @@ rm -rf "$(R)/boot-backup"
 run root
 expect "patched partition, no backup -> stop" root STOPPED
 [ -d "$(R)/boot-backup" ] && { FAIL=$((FAIL + 1)); echo "FAIL a backup of a patched partition was made"; }
+
+# BACKUP.sh: reads partitions only; checks an existing backup instead of replacing it
+check_field() {
+  if [ "$(field "$1" "$2")" = "$3" ]; then PASS=$((PASS + 1)); echo "ok   $4 ($2=$3)"
+  else FAIL=$((FAIL + 1)); echo "FAIL $4: $2=$(field "$1" "$2"), wanted $3"; fi
+}
+setup
+rm "$SIM/storage/Download/Magisk-v31.1.apk"
+run backup
+expect "backup, no Magisk APK -> stop" backup STOPPED "$SIM/dev/init_boot_a" "$STOCK_SHA"
+[ -d "$(R)/boot-backup" ] && { FAIL=$((FAIL + 1)); echo "FAIL backup folder made without a stock check"; }
+
+setup
+env EASYROOT_PROP_ro_product_model="Retroid Pocket 5" /system/bin/sh "$(R)/tools/backup.sh"
+expect "backup on unsupported model -> stop" backup STOPPED
+
+setup
+run backup
+expect "backup -> made + checked" backup OK "$SIM/dev/init_boot_a" "$STOCK_SHA" "$(R)/boot-backup/init_boot_a.img" "$STOCK_SHA" \
+  "$(R)/boot-backup/vendor_boot_b.img" "$(sha "$SIM/dev/vendor_boot_b")" "$(R)/boot-backup/dtbo_a.img" "$(sha "$SIM/dev/dtbo_a")"
+check_field backup IMAGES 10 "backup has every partition of both slots"
+run backup
+expect "backup again -> already there, checked" backup ALREADY
+printf 'X' | dd of="$(R)/boot-backup/vendor_boot_b.img" bs=1 seek=100 conv=notrunc 2> /dev/null
+run backup
+expect "backup with a damaged image -> stop" backup STOPPED
+
+setup
+run backup > /dev/null
+run root
+expect "root after BACKUP.sh -> uses that backup" root OK "$SIM/dev/init_boot_a" "$PATCHED_SHA"
+grep -q "no boot backup yet" "$(R)/root-result.txt" && { FAIL=$((FAIL + 1)); echo "FAIL root made a second backup"; }
+run backup
+expect "backup when rooted, backup there -> already" backup ALREADY "$SIM/dev/init_boot_a" "$PATCHED_SHA"
+rm -rf "$(R)/boot-backup"
+run backup
+expect "backup of a patched partition, no backup -> stop" backup STOPPED "$SIM/dev/init_boot_a" "$PATCHED_SHA"
+[ -d "$(R)/boot-backup" ] && { FAIL=$((FAIL + 1)); echo "FAIL a backup of a patched partition was made"; }
+
+setup
+run backup > /dev/null
+cp "$STOCK_IMG" "$SIM/dev/init_boot_a"
+printf 'X' | dd of="$SIM/dev/init_boot_a" bs=1 seek=8000000 conv=notrunc 2> /dev/null
+NEW_SHA=$(sha "$SIM/dev/init_boot_a")
+env EASYROOT_PROP_ro_build_display_id=FW2 /system/bin/sh "$(R)/tools/backup.sh"
+expect "backup after firmware update -> old set aside, new made" backup OK "$(R)/boot-backup/init_boot_a.img" "$NEW_SHA" "$(R)/boot-backup-FW1/init_boot_a.img" "$STOCK_SHA" "$SIM/dev/init_boot_a" "$NEW_SHA"
 
 echo
 echo "passed $PASS, failed $FAIL"

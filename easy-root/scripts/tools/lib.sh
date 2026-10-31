@@ -1,5 +1,5 @@
-# lib.sh - shared parts of the Retroid Easy Root scripts (root.sh, undo.sh, check.sh source this file).
-# The scripts run as root: started by the short launchers (ROOT.sh, UNDO.sh, CHECK.sh) through
+# lib.sh - shared parts of the Retroid Easy Root scripts (backup.sh, root.sh, undo.sh, check.sh source this file).
+# The scripts run as root: started by the short launchers (BACKUP.sh, ROOT.sh, UNDO.sh, CHECK.sh) through
 # Settings > Handheld Settings > Advanced > Run script as Root, or on any rooted device with: su -c sh <script>
 # Retroid's runner sends every line of the picked file on its own to its root service and cuts lines at
 # 255 characters, which is why the launchers are one short line and the real work is done here.
@@ -152,6 +152,13 @@ get_magisk_tools() {
   MB=$M/magiskboot
 }
 
+# find_magiskboot: MB from the installed Magisk, or unpacked from the Magisk APK in Download (0 = found)
+find_magiskboot() {
+  [ -n "$MB" ] && [ -x "$MB" ] && return 0
+  if [ -x /data/adb/magisk/magiskboot ]; then MB=/data/adb/magisk/magiskboot; return 0; fi
+  find_magisk_apk && get_magisk_tools
+}
+
 # is_patched <image>: 0 = Magisk-patched ramdisk, 1 = not Magisk-patched, 2 = cannot tell. Needs MB (magiskboot).
 is_patched() {
   [ -n "$MB" ] && [ -x "$MB" ] || return 2
@@ -227,6 +234,31 @@ make_backup() {
     echo "Keep this folder: it is how you go back to stock (and get firmware updates) later."
   } > "$d/info.txt"
   log "backup written to $d"
+}
+
+# ensure_backup: BK holds a checked stock backup for the firmware the device runs -> STOCK; BK_NEW=1 if made now.
+# Needs FW, BK and $WORK/cur.img (init_boot of the active slot). A backup from an older firmware that no longer
+# matches init_boot is moved to boot-backup-<old firmware>. A Magisk-patched init_boot is never saved as stock.
+ensure_backup() {
+  BK_NEW=0
+  if [ -f "$BK/SHA256SUMS" ] && [ "$(backup_fw "$BK")" != "$FW" ] && ! cmp -s "$WORK/cur.img" "$BK/init_boot$SLOT.img"; then
+    old=$(backup_fw "$BK" | tr -cd 'A-Za-z0-9._-')
+    [ -n "$old" ] || old=old-$(date +%Y%m%d%H%M%S)
+    mv "$BK" "$R/boot-backup-$old" || stop "Could not move the old backup aside."
+    log "the backup in boot-backup was made on firmware $old; moved to boot-backup-$old, making a new one for $FW"
+  fi
+  if [ ! -f "$BK/SHA256SUMS" ]; then
+    find_magiskboot || stop "Put the official Magisk APK (Magisk-v31.1.apk) in Download first: it is needed to check that init_boot$SLOT is stock before it is backed up. Nothing was written."
+    is_patched "$WORK/cur.img"
+    case $? in
+      0) stop "init_boot$SLOT already holds a Magisk-patched image and there is no stock backup, so none can be made now. If you just ran ROOT.sh, restart the device to start Magisk." ;;
+      2) stop "Could not read the ramdisk of init_boot$SLOT (not a boot image Magisk knows)." ;;
+    esac
+    log "no boot backup yet - making one in $BK"
+    make_backup "$BK" || stop "The boot backup failed (see the lines above). Nothing was written."
+    BK_NEW=1
+  fi
+  check_backup "$BK" || stop "Your stock backup in $BK does not check out. Nothing was written."
 }
 
 # get_flags: the same patch settings the Magisk app works out (app_functions.sh: mount_partitions + get_flags)

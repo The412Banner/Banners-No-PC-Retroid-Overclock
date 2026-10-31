@@ -27,24 +27,8 @@ dd if="$DEV" of="$WORK/cur.img" bs=1048576 2> /dev/null && [ "$(stat -c %s "$WOR
 FW=$(prop ro.build.display.id)
 BK=$R/boot-backup
 
-# After a firmware update the old backup no longer fits: set it aside and make a new one.
-if [ -f "$BK/SHA256SUMS" ] && [ "$(backup_fw "$BK")" != "$FW" ] && ! cmp -s "$WORK/cur.img" "$BK/init_boot$SLOT.img"; then
-  old=$(backup_fw "$BK" | tr -cd 'A-Za-z0-9._-')
-  [ -n "$old" ] || old=old-$(date +%Y%m%d%H%M%S)
-  mv "$BK" "$R/boot-backup-$old" || stop "Could not move the old backup aside."
-  log "the backup in boot-backup was made on firmware $old; moved to boot-backup-$old, making a new one for $FW"
-fi
-
-if [ ! -f "$BK/SHA256SUMS" ]; then
-  is_patched "$WORK/cur.img"
-  case $? in
-    0) stop "init_boot$SLOT already holds a Magisk-patched image, but there is no stock backup. Restart the device to start Magisk." ;;
-    2) stop "Could not read the ramdisk of init_boot$SLOT (not a boot image Magisk knows)." ;;
-  esac
-  log "no boot backup yet - making one in $BK"
-  make_backup "$BK" || stop "The boot backup failed (see the lines above). Nothing was written."
-fi
-check_backup "$BK" || stop "Your stock backup in $BK does not check out. Nothing was written."
+# Same backup as BACKUP.sh when there is none yet (or the firmware changed)
+ensure_backup
 
 if ! cmp -s "$WORK/cur.img" "$STOCK"; then
   is_patched "$WORK/cur.img"
