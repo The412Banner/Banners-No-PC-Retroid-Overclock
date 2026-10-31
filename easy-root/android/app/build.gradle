@@ -15,24 +15,28 @@ android {
         versionName '0.1.0'
     }
 
-    // The release key comes from the EASYROOT_KEYSTORE_* secrets in CI; without them (forks) the debug key is used.
+    // Public AOSP testkey (android@android.com, SHA-256 A4:0D:A8:0A:59:D1:70:CA…), the same one Bannerlator uses,
+    // so every build has the same signature and installs over the last one. v1 + v2 + v3.
     signingConfigs {
-        release {
-            def ks = System.getenv('EASYROOT_KEYSTORE')
-            if (ks) {
-                storeFile file(ks)
-                storeType 'pkcs12'
-                storePassword System.getenv('EASYROOT_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('EASYROOT_KEY_ALIAS')
-                keyPassword System.getenv('EASYROOT_KEYSTORE_PASSWORD')
-            }
+        testkey {
+            storeFile file('../keystore/testkey.p12')
+            storeType 'pkcs12'
+            storePassword 'android'
+            keyAlias 'testkey'
+            keyPassword 'android'
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
         }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.testkey
+        }
         release {
             minifyEnabled false
-            signingConfig System.getenv('EASYROOT_KEYSTORE') ? signingConfigs.release : signingConfigs.debug
+            signingConfig signingConfigs.testkey
         }
     }
 

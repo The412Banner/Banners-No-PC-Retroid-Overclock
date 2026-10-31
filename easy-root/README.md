@@ -63,6 +63,9 @@ stock `a872e906…`, firmware 1.0.0.108).
 Apps cannot use Retroid's root service themselves (the service is hidden from apps and the Run script screen is
 not exported), so the app prepares the files, opens Retroid Settings and reads the results. It never has root.
 
+The APK is signed with the public AOSP test key (v1 + v2 + v3, certificate SHA-256 `a40da80a…f5dc`), so every build
+has the same signature and installs over the previous one.
+
 ## Testing
 
 `test/sim-test.sh` runs root/undo/check in test mode against fake partitions (no root needed, 18 cases):

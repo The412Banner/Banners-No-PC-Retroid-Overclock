@@ -60,22 +60,7 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
-      - name: Prepare signing key
-        env:
-          KEYSTORE_B64: ${{ secrets.EASYROOT_KEYSTORE_B64 }}
-        run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/easyroot.p12"
-            echo "EASYROOT_KEYSTORE=$RUNNER_TEMP/easyroot.p12" >> "$GITHUB_ENV"
-            echo "signing with the release key"
-          else
-            echo "::warning::no EASYROOT_KEYSTORE_B64 secret: the APK is signed with the debug key"
-          fi
-
       - name: Build the app
-        env:
-          EASYROOT_KEYSTORE_PASSWORD: ${{ secrets.EASYROOT_KEYSTORE_PASSWORD }}
-          EASYROOT_KEY_ALIAS: ${{ secrets.EASYROOT_KEY_ALIAS }}
         run: gradle -p easy-root/android --no-daemon assembleRelease
 
       - name: Package APK + script pack
@@ -86,7 +71,12 @@ jobs:
           cp -r easy-root/scripts/. pack/RetroidRoot/
           (cd pack && zip -r -X "../out/RetroidEasyRoot-scripts-$EASYROOT_VERSION-$sha8.zip" RetroidRoot)
           bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          "$bt/apksigner" verify --print-certs "out/RetroidEasyRoot-$EASYROOT_VERSION-$sha8.apk" | tee out/apk-certificate.txt
+          # --min-sdk-version 23 makes verify require the v1 signature too
+          "$bt/apksigner" verify -v --min-sdk-version 23 --print-certs "out/RetroidEasyRoot-$EASYROOT_VERSION-$sha8.apk" | tee out/apk-certificate.txt
+          for s in 'v1 scheme (JAR signing)' 'v2 scheme (APK Signature Scheme v2)' 'v3 scheme (APK Signature Scheme v3)'; do
+            grep -q "Verified using $s: true" out/apk-certificate.txt || { echo "::error::not signed with $s"; exit 1; }
+          done
+          grep -qi 'certificate SHA-256 digest: a40da80a59d170caa950cf15c18c454d47a39b26989d8b640ecd745ba71bf5dc' out/apk-certificate.txt || { echo "::error::not the AOSP testkey"; exit 1; }
           unzip -l "out/RetroidEasyRoot-$EASYROOT_VERSION-$sha8.apk" | grep -E 'assets/' 
           (cd out && sha256sum *.apk *.zip > SHA256SUMS && cat SHA256SUMS)
 
