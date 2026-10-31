@@ -1,7 +1,8 @@
-name: Retroid Easy Root (app + script pack)
+name: Retroid Easy Root (app + manual pack)
 
-# Manual build. Checks the scripts, builds the signed app (scripts inside as assets) and a zip with the
-# Download/RetroidRoot folder for people who only want the scripts. Output = one artifact, no release.
+# Manual build. Checks the scripts, builds the signed app (scripts inside as assets) and the manual pack zip
+# (instructions + Download/RetroidRoot + the official Magisk APK) for people who do not want the app.
+# Output = one artifact, no release.
 
 on:
   workflow_dispatch:
@@ -32,7 +33,7 @@ jobs:
         run: |
           for f in *.sh tools/*.sh; do sh -n "$f" && echo "syntax ok: $f"; done
           # Retroid's runner cuts every line at 255 chars and runs each line alone
-          awk 'length > 254 { print FILENAME ": line " FNR " is " length " chars"; bad = 1 } END { exit bad }' ROOT.sh UNDO.sh CHECK.sh
+          awk 'length > 254 { print FILENAME ": line " FNR " is " length " chars"; bad = 1 } END { exit bad }' [A-Z]*.sh
           # a glob right after a variable becomes /* when a tools file is picked by mistake and $VAR is empty
           if grep -n -E '\$\{?[A-Za-z_]+\}?"?/\*' tools/*.sh; then echo "glob after a variable (see above)"; exit 1; fi
           lib_ver=$(sed -n 's/^EASYROOT_VERSION=//p' tools/lib.sh)
@@ -63,13 +64,26 @@ jobs:
       - name: Build the app
         run: gradle -p easy-root/android --no-daemon assembleRelease
 
-      - name: Package APK + script pack
+      - name: Package APK + manual pack
         run: |
           sha8=$(git rev-parse --short=8 HEAD)
           mkdir -p out pack/RetroidRoot
           cp easy-root/android/app/build/outputs/apk/release/app-release.apk "out/RetroidEasyRoot-$EASYROOT_VERSION-$sha8.apk"
           cp -r easy-root/scripts/. pack/RetroidRoot/
-          (cd pack && zip -r -X "../out/RetroidEasyRoot-scripts-$EASYROOT_VERSION-$sha8.zip" RetroidRoot)
+          # the official Magisk APK the scripts know, unchanged, plus its licence (GPLv3)
+          m_sha=$(sed -n 's/^MAGISK_KNOWN="\([0-9a-f]*\)=.*/\1/p' easy-root/scripts/tools/lib.sh)
+          m_ver=$(sed -n 's/^MAGISK_KNOWN="[0-9a-f]*=\([0-9.]*\)".*/\1/p' easy-root/scripts/tools/lib.sh)
+          [ -n "$m_sha" ] && [ -n "$m_ver" ]
+          curl -fsSL --retry 3 -o "pack/Magisk-v$m_ver.apk" "https://github.com/topjohnwu/Magisk/releases/download/v$m_ver/Magisk-v$m_ver.apk"
+          echo "$m_sha  pack/Magisk-v$m_ver.apk" | sha256sum -c -
+          curl -fsSL --retry 3 -o pack/Magisk-LICENSE.txt "https://raw.githubusercontent.com/topjohnwu/Magisk/v$m_ver/LICENSE"
+          grep -q 'GNU GENERAL PUBLIC LICENSE' pack/Magisk-LICENSE.txt
+          sed -e "s/@VERSION@/$EASYROOT_VERSION/g" -e "s/@MAGISK@/$m_ver/g" -e "s/@MAGISK_SHA@/$m_sha/g" \
+            easy-root/manual/README-FIRST.txt > pack/README-FIRST.txt
+          if grep -n '@[A-Z_]*@' pack/README-FIRST.txt; then echo "::error::placeholder left in README-FIRST.txt"; exit 1; fi
+          (cd pack && zip -r -X "../out/RetroidEasyRoot-manual-$EASYROOT_VERSION-$sha8.zip" \
+            README-FIRST.txt "Magisk-v$m_ver.apk" Magisk-LICENSE.txt RetroidRoot)
+          unzip -l "out/RetroidEasyRoot-manual-$EASYROOT_VERSION-$sha8.zip"
           bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
           # --min-sdk-version 23 makes verify require the v1 signature too
           "$bt/apksigner" verify -v --min-sdk-version 23 --print-certs "out/RetroidEasyRoot-$EASYROOT_VERSION-$sha8.apk" | tee out/apk-certificate.txt

@@ -15,30 +15,37 @@ Other models are refused until someone tests them.
 1. Install **Retroid Easy Root** (APK from the release) and open it.
 2. **Allow file access.**
 3. **Download Magisk 31.1.** The app gets it from the official release on GitHub and checks it.
-4. **Copy the tool files.** They go to `Download/RetroidRoot`.
-5. Tap **Open Retroid Settings**, go to **Handheld Settings > Advanced > Run script as Root**, and pick
-   `Download > RetroidRoot > ROOT.sh`. The first run takes about a minute (it makes a backup).
-   Then go back to the app and read the result.
-6. **Restart** the device. Open the Magisk app (it may ask for one more restart).
-7. Run `CHECK.sh` the same way to confirm. The app shows **Rooted**.
+4. **Copy the tool files.** They go to `Download/RetroidRoot`, and the app asks Android to index the four
+   launchers so Run script as Root lists them.
+5. **Back up.** Tap **Open Retroid Settings**, go to **Handheld Settings > Advanced > Run script as Root**, and
+   pick `Download > RetroidRoot > BACKUP.sh` (about a minute). Copy `Download/RetroidRoot/boot-backup` off the
+   device.
+6. **Root.** Run `ROOT.sh` the same way. Then go back to the app and read the result.
+7. **Restart** the device. Open the Magisk app (it may ask for one more restart).
+8. Run `CHECK.sh` the same way to confirm. The app shows **Rooted**.
 
-## With the scripts only
+## Without the app (manual pack)
 
-1. Download `Magisk-v31.1.apk` from https://github.com/topjohnwu/Magisk/releases/tag/v31.1 into `Download`.
-2. Unzip the script pack into `Download`, so you have `Download/RetroidRoot/ROOT.sh` and `Download/RetroidRoot/tools/`.
-3. Settings > Handheld Settings > Advanced > **Run script as Root** > `Download/RetroidRoot/ROOT.sh`.
-4. Read `Download/RetroidRoot/root-result.txt`. The last lines say `RESULT: OK` when it worked.
-5. Restart. Open the Magisk app.
+One zip, `RetroidEasyRoot-manual-<version>-<commit>.zip`, with everything for doing it by hand:
+`README-FIRST.txt` (the steps), the `RetroidRoot` folder (the same scripts the app uses), and the official
+`Magisk-v31.1.apk`, unchanged, with its licence.
+
+1. Unzip it into `Download`, so you have `Download/Magisk-v31.1.apk` and `Download/RetroidRoot/BACKUP.sh`.
+2. Settings > Handheld Settings > Advanced > **Run script as Root** > `Download/RetroidRoot/BACKUP.sh`.
+   Copy `Download/RetroidRoot/boot-backup` off the device.
+3. The same way: `ROOT.sh`. Read `Download/RetroidRoot/root-result.txt`; the last lines say `RESULT: OK`.
+4. Restart. Open the Magisk app. Run `CHECK.sh` to confirm.
 
 | Pick this | What it does | Result file |
 |---|---|---|
-| `ROOT.sh` | Makes a boot backup if there is none. Checks the Magisk APK against the official release. Patches the stock `init_boot` with Magisk's own patcher (the same settings the Magisk app uses). Checks the patched image. Writes it to the **active slot only** and reads it back; if the read-back does not match, it writes the stock image back. Installs the Magisk app if it is missing. Does not restart. | `root-result.txt` |
+| `BACKUP.sh` | Saves boot, init_boot, vendor_boot, dtbo and vbmeta of both slots to `boot-backup/`, compares every copy with its partition and writes `SHA256SUMS`. Reads partitions only. If a backup is already there it checks every image instead. Refuses when `init_boot` is already Magisk-patched and there is no backup (that would not be stock). | `backup-result.txt` |
+| `ROOT.sh` | Makes the same boot backup if there is none. Checks the Magisk APK against the official release. Patches the stock `init_boot` with Magisk's own patcher (the same settings the Magisk app uses). Checks the patched image. Writes it to the **active slot only** and reads it back; if the read-back does not match, it writes the stock image back. Installs the Magisk app if it is missing. Does not restart. | `root-result.txt` |
 | `UNDO.sh` | Writes your stock `init_boot` back (to unroot, or before a firmware update). Only when the backup checks out, was made on the firmware you run now, and the partition holds a Magisk image. | `undo-result.txt` |
 | `CHECK.sh` | Changes nothing. Reports whether Magisk runs, what is on `init_boot`, and whether the backup is OK. | `check-result.txt` |
 
 Your backup is in `Download/RetroidRoot/boot-backup/` (boot, init_boot, vendor_boot, dtbo and vbmeta of both
-slots, with `SHA256SUMS`). **Copy it off the device too.** After a firmware update, run `ROOT.sh` again: it puts
-the old backup aside (`boot-backup-<old firmware>`) and makes a new one.
+slots, with `SHA256SUMS`). **Copy it off the device too.** After a firmware update, run `BACKUP.sh` (or `ROOT.sh`)
+again: it puts the old backup aside (`boot-backup-<old firmware>`) and makes a new one.
 
 The patched image is also saved as `Download/RetroidRoot/magisk_patched-init_boot_<slot>.img`.
 
@@ -53,7 +60,7 @@ The patched image is also saved as `Download/RetroidRoot/magisk_patched-init_boo
 
 Retroid's **Run script as Root** (`com.rp.settings`) does not run the picked file as a script. It sends every line
 on its own to its root service (`/system/bin/pservice`), which runs it with `popen()` and cuts lines at 255
-characters. So `ROOT.sh`, `UNDO.sh` and `CHECK.sh` are one short line each that start the real script in
+characters. So `BACKUP.sh`, `ROOT.sh`, `UNDO.sh` and `CHECK.sh` are one short line each that start the real script in
 `tools/` with Android's shell.
 
 `tools/root.sh` unpacks `boot_patch.sh` and its binaries from the Magisk APK and runs them the way the Magisk app
@@ -68,12 +75,13 @@ has the same signature and installs over the previous one.
 
 ## Testing
 
-`test/sim-test.sh` runs root/undo/check in test mode against fake partitions (no root needed, 18 cases):
+`test/sim-test.sh` runs backup/root/undo/check in test mode against fake partitions (no root needed, 28 cases):
 `/system/bin/sh test/sim-test.sh <stock init_boot.img> <Magisk APK> <empty scratch dir>`
 
 ## Credits
 
-- **Magisk** by topjohnwu (GPLv3): https://github.com/topjohnwu/Magisk. Not included here. You download the
-  official APK, and its own patcher does the patching.
+- **Magisk** by topjohnwu (GPLv3): https://github.com/topjohnwu/Magisk. Not in this repository or the app:
+  the app downloads the official APK. The manual pack carries the unchanged official APK with its licence
+  (CI downloads it from the v31.1 release and checks its sha256). Its own patcher does the patching.
 - No-PC Run script as Root method and this tool: The412Banner.
 - The original Retroid Pocket 5 root scripts that started this: reddit user shuddertrix.
