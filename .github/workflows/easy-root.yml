@@ -33,6 +33,8 @@ jobs:
           for f in *.sh tools/*.sh; do sh -n "$f" && echo "syntax ok: $f"; done
           # Retroid's runner cuts every line at 255 chars and runs each line alone
           awk 'length > 254 { print FILENAME ": line " FNR " is " length " chars"; bad = 1 } END { exit bad }' ROOT.sh UNDO.sh CHECK.sh
+          # a glob right after a variable becomes /* when a tools file is picked by mistake and $VAR is empty
+          if grep -n -E '\$\{?[A-Za-z_]+\}?"?/\*' tools/*.sh; then echo "glob after a variable (see above)"; exit 1; fi
           lib_ver=$(sed -n 's/^EASYROOT_VERSION=//p' tools/lib.sh)
           app_ver=$(sed -n "s/^ *versionName '\(.*\)'/\1/p" ../android/app/build.gradle)
           echo "scripts $lib_ver, app $app_ver"

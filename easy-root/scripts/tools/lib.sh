@@ -147,7 +147,8 @@ get_magisk_tools() {
     cp "$M/x/lib/arm64-v8a/lib$n.so" "$M/$n" || return 1
   done
   rm -rf "$M/x"
-  chmod 755 "$M"/*
+  # named files, no glob: if Run script as Root is pointed at this file, each line runs alone with $M empty
+  chmod 755 "$M/boot_patch.sh" "$M/util_functions.sh" "$M/magiskboot" "$M/magiskinit" "$M/magisk" "$M/init-ld" "$M/busybox"
   MB=$M/magiskboot
 }
 
